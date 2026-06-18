@@ -1,0 +1,44 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+# 环境 & 密钥（重要！）
+.env
+.env.local
+*.pem
+*.key
+secrets/
+
+# 日志
+*.log
+logs/
+
+# AI / 模型
+*.gguf
+*.bin
+models/
+checkpoints/
+
+# 数据 & 简历文件
+data/
+*.pdf
+!docs/**/*.pdf
+
+# 编辑器
+.idea/
+.vscode/
+.cursor/
+
+# macOS
+.DS_Store
