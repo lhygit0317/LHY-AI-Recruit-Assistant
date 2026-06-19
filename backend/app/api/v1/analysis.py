@@ -1,3 +1,6 @@
+from typing import Annotated
+
+from fastapi import Depends
 """AI 分析相关 API。"""
 
 import json
@@ -7,8 +10,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.api.deps import CurrentUser, DbSession, can_see_resume
-from app.models.position import Position
+from app.api.deps import DbSession
+from app.models.position import Position, PositionStatus
+from app.models.resume import Resume
+from app.models.user import User
+from app.services.auth import can_see_resume, get_current_user
 from app.models.resume import Resume
 from app.schemas.position import AnalysisResult
 from app.schemas.resume import QuestionItem, QuestionSet
@@ -74,7 +80,7 @@ def _questions_local(resume: Resume, pos: Position) -> QuestionSet:
 
 @router.post("/match/{resume_id}/{pos_id}", response_model=AnalysisResult)
 def match_resume_position(
-    resume_id: str, pos_id: str, db: DbSession, user: CurrentUser
+    resume_id: str, pos_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> AnalysisResult:
     """简历 vs 岗位匹配分析。"""
     r = db.get(Resume, resume_id)
@@ -88,7 +94,7 @@ def match_resume_position(
 
 @router.post("/questions/{resume_id}/{pos_id}", response_model=QuestionSet)
 def generate_questions(
-    resume_id: str, pos_id: str, db: DbSession, user: CurrentUser, use_llm: bool = True
+    resume_id: str, pos_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)], use_llm: bool = True
 ) -> QuestionSet:
     """生成三轮面试题。
 
@@ -108,7 +114,7 @@ def generate_questions(
 
 @router.post("/route/{resume_id}")
 def route_resume(
-    resume_id: str, db: DbSession, user: CurrentUser
+    resume_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> list[dict]:
     """智能分流：给该简历推荐部门 + 岗位。"""
     r = db.get(Resume, resume_id)

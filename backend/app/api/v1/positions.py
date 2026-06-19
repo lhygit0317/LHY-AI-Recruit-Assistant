@@ -1,8 +1,13 @@
+from typing import Annotated
+
+from fastapi import Depends
 """岗位管理 API。"""
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.api.deps import CurrentUser, DbSession, require_can_config
+from app.api.deps import DbSession
+from app.models.user import User
+from app.services.auth import get_current_user, require_can_config
 from app.models.department import Department
 from app.models.position import Position, PositionStatus
 from app.schemas.common import MessageResponse
@@ -36,7 +41,7 @@ def _to_out(p: Position, dept_name: str = "") -> PositionOut:
 @router.get("", response_model=list[PositionOut])
 def list_positions(
     db: DbSession,
-    _: CurrentUser,
+    me: Annotated[User, Depends(get_current_user)],
     chan: str | None = Query(None, description="社招/校招"),
     active_only: bool = Query(False),
 ) -> list[PositionOut]:
@@ -50,7 +55,7 @@ def list_positions(
 
 @router.post("", response_model=PositionOut, status_code=201)
 def create_position(
-    payload: PositionCreate, db: DbSession, _: CurrentUser = require_can_config
+    payload: PositionCreate, db: DbSession, me: Annotated[User, Depends(get_current_user)] = require_can_config
 ) -> PositionOut:
     if db.get(Position, payload.id):
         raise HTTPException(409, "岗位 ID 已存在")
@@ -75,7 +80,7 @@ def create_position(
 
 
 @router.get("/{pos_id}", response_model=PositionOut)
-def get_position(pos_id: str, db: DbSession, _: CurrentUser) -> PositionOut:
+def get_position(pos_id: str, db: DbSession, me: Annotated[User, Depends(get_current_user)]) -> PositionOut:
     p = db.get(Position, pos_id)
     if not p:
         raise HTTPException(404, "岗位不存在")
@@ -87,7 +92,7 @@ def update_position(
     pos_id: str,
     payload: PositionUpdate,
     db: DbSession,
-    _: CurrentUser = require_can_config,
+    me: Annotated[User, Depends(get_current_user)] = require_can_config,
 ) -> PositionOut:
     p = db.get(Position, pos_id)
     if not p:
@@ -104,7 +109,7 @@ def update_position(
 
 @router.post("/{pos_id}/tags", response_model=PositionOut)
 def add_implicit_tag(
-    pos_id: str, tag: ImplicitTag, db: DbSession, _: CurrentUser = require_can_config
+    pos_id: str, tag: ImplicitTag, db: DbSession, me: Annotated[User, Depends(get_current_user)] = require_can_config
 ) -> PositionOut:
     """添加一个隐性标签。"""
     p = db.get(Position, pos_id)
@@ -122,7 +127,7 @@ def add_implicit_tag(
 
 @router.delete("/{pos_id}/tags/{tag_name}", response_model=PositionOut)
 def remove_implicit_tag(
-    pos_id: str, tag_name: str, db: DbSession, _: CurrentUser = require_can_config
+    pos_id: str, tag_name: str, db: DbSession, me: Annotated[User, Depends(get_current_user)] = require_can_config
 ) -> PositionOut:
     p = db.get(Position, pos_id)
     if not p:
@@ -136,7 +141,7 @@ def remove_implicit_tag(
 
 @router.post("/{pos_id}/toggle", response_model=MessageResponse)
 def toggle_position(
-    pos_id: str, db: DbSession, _: CurrentUser = require_can_config
+    pos_id: str, db: DbSession, me: Annotated[User, Depends(get_current_user)] = require_can_config
 ) -> MessageResponse:
     """上架/下架。"""
     p = db.get(Position, pos_id)
@@ -151,7 +156,7 @@ def toggle_position(
 
 @router.delete("/{pos_id}", response_model=MessageResponse)
 def delete_position(
-    pos_id: str, db: DbSession, _: CurrentUser = require_can_config
+    pos_id: str, db: DbSession, me: Annotated[User, Depends(get_current_user)] = require_can_config
 ) -> MessageResponse:
     p = db.get(Position, pos_id)
     if not p:

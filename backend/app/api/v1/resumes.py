@@ -1,3 +1,6 @@
+from typing import Annotated
+
+from fastapi import Depends
 """简历管理 API。"""
 
 from datetime import datetime
@@ -6,10 +9,12 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from sqlalchemy import or_
 
-from app.api.deps import CurrentUser, DbSession, can_see_resume
+from app.api.deps import DbSession
 from app.core.config import get_settings
 from app.models.notification import Notification
 from app.models.resume import Resume, ResumeChannel, ResumeSource
+from app.models.user import Role, User
+from app.services.auth import can_see_resume, get_current_user
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.resume import ResumeCreate, ResumeOut, ResumeUpdate
 
@@ -44,7 +49,7 @@ def _to_out(r: Resume) -> ResumeOut:
 @router.get("", response_model=PaginatedResponse[ResumeOut])
 def list_resumes(
     db: DbSession,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     chan: ResumeChannel | None = Query(None),
     q: str | None = Query(None),
     owner_id: str | None = Query(None),
@@ -97,7 +102,7 @@ def list_resumes(
 
 @router.post("", response_model=ResumeOut, status_code=201)
 def create_resume(
-    payload: ResumeCreate, db: DbSession, user: CurrentUser
+    payload: ResumeCreate, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> ResumeOut:
     """手动创建简历（用于批量导入或初始化）。"""
     rid = payload.id or f"r-{int(datetime.utcnow().timestamp() * 1000)}"
@@ -123,7 +128,7 @@ def create_resume(
 
 
 @router.get("/{resume_id}", response_model=ResumeOut)
-def get_resume(resume_id: str, db: DbSession, user: CurrentUser) -> ResumeOut:
+def get_resume(resume_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)]) -> ResumeOut:
     r = db.get(Resume, resume_id)
     if not r:
         raise HTTPException(404, "简历不存在")
@@ -134,7 +139,7 @@ def get_resume(resume_id: str, db: DbSession, user: CurrentUser) -> ResumeOut:
 
 @router.patch("/{resume_id}", response_model=ResumeOut)
 def update_resume(
-    resume_id: str, payload: ResumeUpdate, db: DbSession, user: CurrentUser
+    resume_id: str, payload: ResumeUpdate, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> ResumeOut:
     r = db.get(Resume, resume_id)
     if not r:
@@ -151,7 +156,7 @@ def update_resume(
 
 @router.delete("/{resume_id}", response_model=MessageResponse)
 def delete_resume(
-    resume_id: str, db: DbSession, user: CurrentUser
+    resume_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> MessageResponse:
     r = db.get(Resume, resume_id)
     if not r:
@@ -165,7 +170,7 @@ def delete_resume(
 
 @router.post("/recommend/{resume_id}/to/{dept_id}", response_model=MessageResponse)
 def recommend_to_dept(
-    resume_id: str, dept_id: str, db: DbSession, user: CurrentUser
+    resume_id: str, dept_id: str, db: DbSession, user: Annotated[User, Depends(get_current_user)]
 ) -> MessageResponse:
     """将简历推荐到某部门 HRBP 名下。"""
     from app.models.department import Department
@@ -215,7 +220,7 @@ def recommend_to_dept(
 @router.post("/upload", response_model=MessageResponse)
 async def upload_resume(
     db: DbSession,
-    user: CurrentUser,
+    user: Annotated[User, Depends(get_current_user)],
     file: UploadFile = File(...),
     chan: ResumeChannel = ResumeChannel.SOCIAL,
     current_dept_id: str = Query(...),

@@ -8,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api.router import api_router
 from app.core.config import get_settings
-from app.db.session import engine
-from app.models import Base  # noqa: F401 触发所有 model 注册
+from app.db.session import Base, engine
+from app.models import (  # noqa: F401 触发所有 model 注册
+    Department, Notification, Position, Resume, User,
+)
 
 settings = get_settings()
 

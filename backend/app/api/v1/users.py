@@ -1,20 +1,24 @@
 """用户管理 API。"""
 
-from fastapi import APIRouter, HTTPException, Query
+from typing import Annotated
 
-from app.api.deps import DbSession, require_admin, require_can_users
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_db
 from app.core.security import hash_password
 from app.models.user import User
 from app.schemas.common import MessageResponse, PaginatedResponse
 from app.schemas.user import UserCreate, UserOut, UserUpdate
+from app.services.auth import require_admin, require_can_users
 
 router = APIRouter()
 
 
 @router.get("", response_model=PaginatedResponse[UserOut])
 def list_users(
-    db: DbSession,
-    _: User = require_can_users,
+    db: Annotated[Session, Depends(get_db)],
+    me: Annotated[User, Depends(require_can_users)],
     q: str | None = Query(None, description="搜索 姓名/工号/部门"),
     page: int = 1,
     page_size: int = 50,
@@ -37,7 +41,9 @@ def list_users(
 
 @router.post("", response_model=UserOut, status_code=201)
 def create_user(
-    payload: UserCreate, db: DbSession, _: User = require_admin
+    payload: UserCreate,
+    db: Annotated[Session, Depends(get_db)],
+    me: Annotated[User, Depends(require_admin)],
 ) -> UserOut:
     if db.get(User, payload.id):
         raise HTTPException(409, "工号已存在")
@@ -59,7 +65,11 @@ def create_user(
 
 
 @router.get("/{user_id}", response_model=UserOut)
-def get_user(user_id: str, db: DbSession, _: User = require_can_users) -> UserOut:
+def get_user(
+    user_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    me: Annotated[User, Depends(require_can_users)],
+) -> UserOut:
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "用户不存在")
@@ -68,7 +78,10 @@ def get_user(user_id: str, db: DbSession, _: User = require_can_users) -> UserOu
 
 @router.patch("/{user_id}", response_model=UserOut)
 def update_user(
-    user_id: str, payload: UserUpdate, db: DbSession, _: User = require_admin
+    user_id: str,
+    payload: UserUpdate,
+    db: Annotated[Session, Depends(get_db)],
+    me: Annotated[User, Depends(require_admin)],
 ) -> UserOut:
     user = db.get(User, user_id)
     if not user:
@@ -84,7 +97,11 @@ def update_user(
 
 
 @router.delete("/{user_id}", response_model=MessageResponse)
-def delete_user(user_id: str, db: DbSession, _: User = require_admin) -> MessageResponse:
+def delete_user(
+    user_id: str,
+    db: Annotated[Session, Depends(get_db)],
+    me: Annotated[User, Depends(require_admin)],
+) -> MessageResponse:
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(404, "用户不存在")

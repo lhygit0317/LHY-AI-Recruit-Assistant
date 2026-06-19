@@ -1,18 +1,23 @@
+from typing import Annotated
+
+from fastapi import Depends
 """部门管理 API。"""
 
 from fastapi import APIRouter, HTTPException
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import DbSession
+from app.models.user import User
 from app.models.department import Department
 from app.models.position import Position
 from app.schemas.common import MessageResponse
 from app.schemas.department import DepartmentCreate, DepartmentOut, DepartmentUpdate
+from app.services.auth import get_current_user
 
 router = APIRouter()
 
 
 @router.get("", response_model=list[DepartmentOut])
-def list_departments(db: DbSession, _: CurrentUser) -> list[DepartmentOut]:
+def list_departments(db: DbSession, me: Annotated[User, Depends(get_current_user)]) -> list[DepartmentOut]:
     """部门关系表 - 全员可见。"""
     depts = db.query(Department).order_by(Department.id).all()
     out = []
@@ -32,7 +37,7 @@ def list_departments(db: DbSession, _: CurrentUser) -> list[DepartmentOut]:
 
 
 @router.post("", response_model=DepartmentOut, status_code=201)
-def create_dept(payload: DepartmentCreate, db: DbSession, _: CurrentUser) -> DepartmentOut:
+def create_dept(payload: DepartmentCreate, db: DbSession, me: Annotated[User, Depends(get_current_user)]) -> DepartmentOut:
     if db.get(Department, payload.id):
         raise HTTPException(409, "部门 ID 已存在")
     d = Department(
@@ -53,7 +58,7 @@ def create_dept(payload: DepartmentCreate, db: DbSession, _: CurrentUser) -> Dep
 
 @router.patch("/{dept_id}", response_model=DepartmentOut)
 def update_dept(
-    dept_id: str, payload: DepartmentUpdate, db: DbSession, _: CurrentUser
+    dept_id: str, payload: DepartmentUpdate, db: DbSession, me: Annotated[User, Depends(get_current_user)]
 ) -> DepartmentOut:
     d = db.get(Department, dept_id)
     if not d:
@@ -73,7 +78,7 @@ def update_dept(
 
 
 @router.delete("/{dept_id}", response_model=MessageResponse)
-def delete_dept(dept_id: str, db: DbSession, _: CurrentUser) -> MessageResponse:
+def delete_dept(dept_id: str, db: DbSession, me: Annotated[User, Depends(get_current_user)]) -> MessageResponse:
     d = db.get(Department, dept_id)
     if not d:
         raise HTTPException(404, "部门不存在")

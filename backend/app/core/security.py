@@ -3,20 +3,26 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """bcrypt 哈希密码。"""
+    # bcrypt 限制 72 字节，超出截断
+    pwd = password.encode("utf-8")[:72]
+    return bcrypt.hashpw(pwd, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """验密码。"""
+    pwd = plain.encode("utf-8")[:72]
+    try:
+        return bcrypt.checkpw(pwd, hashed.encode("utf-8"))
+    except ValueError:
+        return False
 
 
 def create_access_token(
