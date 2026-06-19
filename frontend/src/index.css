@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #EEF1F7; color: #1B2030; }
+
+/* 工具类 */
+.card { @apply bg-white border border-line rounded-lg shadow-sh; }
+.card-pad { @apply p-6; }
+.btn { @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-sm font-semibold transition; }
+.btn-primary { @apply bg-blue text-white hover:bg-blue-dark shadow-[0_3px_12px_rgba(43,89,255,.3)] disabled:bg-[#B7C1D6] disabled:shadow-none disabled:cursor-not-allowed; }
+.btn-ghost { @apply bg-[#F6F8FC] text-text border border-line hover:bg-[#EAEEF6]; }
+.btn-sm { @apply px-4 py-2 text-xs rounded-md; }
+.btn-danger { @apply bg-red-soft text-red hover:bg-[#F7DDDC]; }
+.tag { @apply font-mono text-[11px] font-semibold px-2 py-0.5 rounded-md tracking-wider; }
+.tag-blue { @apply bg-blue-soft text-blue-dark; }
+.tag-teal { @apply bg-teal-soft text-teal; }
+.tag-violet { @apply bg-violet-soft text-violet; }
+.tag-amber { @apply bg-amber-soft text-amber; }
+.tag-green { @apply bg-green-soft text-green; }
+.input { @apply w-full px-3.5 py-2.5 border border-line rounded-md text-[13.5px] outline-none focus:border-blue focus:shadow-[0_0_0_3px_theme(colors.blue.soft)] transition; }
+.tabs { @apply inline-flex bg-white border border-line rounded-xl p-1 gap-0.5 shadow-sh; }
+.tabs button { @apply px-5 py-2 rounded-lg text-[13.5px] font-medium text-text-2 transition; }
+.tabs button.on { @apply bg-ink text-white; }
+.pill { @apply text-[11px] font-semibold px-2.5 py-0.5 rounded-full whitespace-nowrap; }
+
+/* 进度条 */
+.bar-track { @apply h-2 rounded-full bg-[#F6F8FC] overflow-hidden border border-line; }
+.bar-fill { @apply h-full rounded-full transition-all duration-1000; }
+
+/* 表格 */
+table { @apply w-full border-collapse text-[13px]; }
+thead th { @apply text-left text-[11px] tracking-wider uppercase text-text-3 font-semibold px-3.5 pb-3 border-b border-line; }
+tbody td { @apply px-3.5 py-3.5 border-b border-line align-middle; }
+tbody tr:hover { @apply bg-[#F6F8FC]; }
