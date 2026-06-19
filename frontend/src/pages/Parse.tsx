@@ -15,6 +15,8 @@ export default function Parse() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [questions, setQuestions] = useState<QuestionSet | null>(null);
   const [qtab, setQtab] = useState<"专业" | "主管" | "资格">("专业");
+  const [useAI, setUseAI] = useState(true);
+  const [qLoading, setQLoading] = useState(false);
 
   useEffect(() => {
     resumeApi.list({ chan }).then((d) => {
@@ -36,7 +38,7 @@ export default function Parse() {
     setResult(null);
     setQuestions(null);
     try {
-      const a = await analysisApi.match(selResume, selPos);
+      const a = await analysisApi.match(selResume, selPos, useAI);
       setResult(a);
     } catch {} finally {
       setLoading(false);
@@ -45,8 +47,14 @@ export default function Parse() {
 
   const genQuestions = async () => {
     if (!selResume || !selPos) return;
-    const qs = await analysisApi.questions(selResume, selPos, false);
-    setQuestions(qs);
+    setQLoading(true);
+    try {
+      const qs = await analysisApi.questions(selResume, selPos, useAI);
+      setQuestions(qs);
+      if (useAI) toast.success("AI 已生成面试题");
+    } catch {} finally {
+      setQLoading(false);
+    }
   };
 
   const resume = resumes.find((r) => r.id === selResume);
@@ -110,12 +118,34 @@ export default function Parse() {
             </select>
           </div>
 
+          {/* AI 开关 */}
+          <div className="mt-5 flex items-center justify-between p-3 bg-[#F6F8FC] border border-line rounded-md">
+            <div>
+              <div className="text-[13px] font-semibold flex items-center gap-1.5">
+                <Sparkles size={14} className="text-violet" /> AI 增强
+              </div>
+              <div className="text-[11px] text-text-3 mt-0.5">
+                开启后用 LLM 重写分析总结 + 生成面试题
+              </div>
+            </div>
+            <button
+              onClick={() => setUseAI(!useAI)}
+              className={`relative w-10 h-5.5 rounded-full transition ${useAI ? "bg-blue" : "bg-line"}`}
+              style={{ width: 40, height: 22 }}
+            >
+              <span
+                className="absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-all"
+                style={{ left: useAI ? 20 : 2 }}
+              />
+            </button>
+          </div>
+
           <button
             className="btn btn-primary w-full mt-4"
             onClick={run}
             disabled={!selResume || !selPos || loading}
           >
-            <Play size={16} /> {loading ? "解析中…" : "开始解析"}
+            <Play size={16} /> {loading ? (useAI ? "AI 解析中…" : "解析中…") : "开始解析"}
           </button>
         </div>
 
@@ -218,11 +248,14 @@ export default function Parse() {
                          verdictText(result.total).cls === "tag-amber" ? "#8a5108" : "#9c2c2c",
                 }}
               >
-                <div>
+                <div className="flex-1">
                   <b>分析：</b>技能命中 {result.k_hit.length}/{position?.keywords.length}，
                   隐性要求命中 {result.t_hit.length}/{position?.implicit.length} 项。
-                  {result.summary}
+                  <div className="mt-2 text-[13px]">{result.summary}</div>
                 </div>
+                {useAI && (
+                  <span className="flex-shrink-0 self-start pill tag-violet text-[10px]">AI</span>
+                )}
               </div>
 
               {/* 面试题 */}
@@ -233,18 +266,21 @@ export default function Parse() {
                 </div>
                 {questions ? (
                   <>
-                    <div className="flex gap-5 border-b border-line mb-0.5">
-                      {(["专业", "主管", "资格"] as const).map((t) => (
-                        <button
-                          key={t}
-                          className={`py-2 text-[13px] font-medium border-b-2 ${
-                            qtab === t ? "text-text border-ink" : "text-text-3 border-transparent"
-                          }`}
-                          onClick={() => setQtab(t)}
-                        >
-                          {t}面试
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-3 mb-2.5">
+                      <div className="flex gap-5 border-b border-line flex-1">
+                        {(["专业", "主管", "资格"] as const).map((t) => (
+                          <button
+                            key={t}
+                            className={`py-2 text-[13px] font-medium border-b-2 ${
+                              qtab === t ? "text-text border-ink" : "text-text-3 border-transparent"
+                            }`}
+                            onClick={() => setQtab(t)}
+                          >
+                            {t}面试
+                          </button>
+                        ))}
+                      </div>
+                      {useAI && <span className="pill tag-violet text-[10px] flex-shrink-0">AI 生成</span>}
                     </div>
                     <div className="pt-4 grid gap-2.5">
                       {questions[qtab].map((q, i) => (
@@ -266,8 +302,8 @@ export default function Parse() {
                 ) : (
                   <div className="border border-dashed border-line rounded-[12px] p-6 text-center bg-[#F6F8FC]">
                     <p className="text-[13px] text-text-2 mb-3.5">面试题需点击生成（结合候选人与岗位 JD）</p>
-                    <button className="btn btn-primary btn-sm" onClick={genQuestions}>
-                      <Sparkles size={14} /> 生成面试题
+                    <button className="btn btn-primary btn-sm" onClick={genQuestions} disabled={qLoading}>
+                      <Sparkles size={14} /> {qLoading ? "生成中…" : useAI ? "AI 生成面试题" : "生成面试题"}
                     </button>
                   </div>
                 )}

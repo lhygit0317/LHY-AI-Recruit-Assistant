@@ -80,12 +80,16 @@ export const resumeApi = {
 };
 
 export const analysisApi = {
-  match: (resumeId: string, posId: string) =>
-    api.post<AnalysisResult>(`/analysis/match/${resumeId}/${posId}`).then((r) => r.data),
-  questions: (resumeId: string, posId: string, useLLM = false) =>
+  match: (resumeId: string, posId: string, useLLM = true) =>
+    api.post<AnalysisResult>(`/analysis/match/${resumeId}/${posId}`, null, {
+      params: { use_llm: useLLM },
+    }).then((r) => r.data),
+  questions: (resumeId: string, posId: string, useLLM = true) =>
     api.post<QuestionSet>(`/analysis/questions/${resumeId}/${posId}`, null, {
       params: { use_llm: useLLM },
     }).then((r) => r.data),
   route: (resumeId: string) =>
     api.post<any[]>(`/analysis/route/${resumeId}`).then((r) => r.data),
+  parseResume: (resumeId: string) =>
+    api.post<{ message: string; data: any }>(`/analysis/parse-resume/${resumeId}`).then((r) => r.data),
 };
